@@ -39,7 +39,12 @@ export async function generateSpec(rawInput) {
       {role:"user",content:draft.slice(0,16000)}
     ]
   });
-  const score = JSON.parse(grade.choices[0].message.content).score;
+  let score = 0;
+try {
+  const parsed = JSON.parse(grade.choices[0].message.content);
+  score = parsed.score ?? 0;
+} catch { score = 0; }
+
 
   // 4. Retry once if score < 80
   if (score < 80) {

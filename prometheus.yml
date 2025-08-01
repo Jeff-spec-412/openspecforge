@@ -1,6 +1,8 @@
 global:
-  scrape_interval: 15s
+  scrape_interval: 5s          # how often Prometheus pulls metrics
+
 scrape_configs:
-  - job_name: osf
+  - job_name: openspecforge
     static_configs:
-      - targets: ["host.docker.internal:9464"]   # we'll expose metrics later
+      - targets: ["host.docker.internal:9100"]
+

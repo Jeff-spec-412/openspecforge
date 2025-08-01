@@ -1,0 +1,5 @@
+{
+  "section": "Problem Statement",
+  "template": "Write the problem statement for the following BRD:\n\n{{brd}}\n\nUse citations: {{citations}}"
+}
+

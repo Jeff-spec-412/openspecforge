@@ -1,0 +1,20 @@
+name: Generate Spec on PR Comment
+on:
+  issue_comment:
+    types: [created]
+jobs:
+  build:
+    if: github.event.issue.pull_request && contains(github.event.comment.body, '/spec')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 18 }
+      - run: npm ci
+      - run: node core/cli.js "${{ github.event.comment.body }}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prd-${{ github.event.issue.number }}
+          path: output.md

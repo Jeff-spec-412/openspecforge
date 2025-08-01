@@ -6,10 +6,12 @@ export async function generateSpec(rawInput) {
   // 1. Retrieval (single-call search model)
   const retrPrompt = `Give me 5 recent reputable web sources about ${rawInput}.`;
   const retr = await openai.chat.completions.create({
-    model: "gpt-4o-search-preview",
-    tools: [{type:"web_search"}],
-    messages: [{role:"user",content: retrPrompt}]
-  });
+    model: "gpt-4o-mini",
+    messages: [
+    {role: "system", content: "You are a research assistant. Reply with 3 bullet facts each ending with a URL."},
+    {role: "user", content: retrPrompt}
+  ]
+});
 
   const sources = retr.choices[0].message.content;     // returns markdown list
 

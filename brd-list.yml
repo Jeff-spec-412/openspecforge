@@ -1,0 +1,6 @@
+# brd-list.yml
+- file: sample-brd.md          # existing demo BRD
+# add more BRDs here:
+# - file: payments-score.md
+# - file: telco-score.md
+

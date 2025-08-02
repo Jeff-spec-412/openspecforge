@@ -2,20 +2,19 @@ name: Nightly Intel
 
 on:
   schedule:
-    - cron: '0 18 * * *'        # 18:00 UTC  ≈ 02:00 SGT
+    - cron: '0 18 * * *'        # 18:00 UTC ≈ 02:00 SGT
   workflow_dispatch:
 
 jobs:
   run-intel:
     runs-on: ubuntu-latest
 
-    # ✅ allow pushes & read secrets
     permissions:
-      contents: write
+      contents: write          # allow pushing to reports branch
 
     env:
       OPENAI_API_KEY:      ${{ secrets.OPENAI_API_KEY }}
-      NOTIFY_WEBHOOK_URL:  ${{ secrets.NOTIFY_WEBHOOK_URL }}   # Slack or Lark
+      NOTIFY_WEBHOOK_URL:  ${{ secrets.NOTIFY_WEBHOOK_URL }}
 
     steps:
       - name: Checkout
@@ -23,10 +22,11 @@ jobs:
         with:
           persist-credentials: true
 
-      # OPTIONAL – uncomment next 4 lines if you prefer the cache live in CI
-      - name: Start Qdrant
-        run: docker run -d -p 6333:6333 qdrant/qdrant:latest
-        timeout-minutes: 1
+      # ───── OPTIONAL: enable to use vector cache in CI ─────
+      #- name: Start Qdrant
+      #  run: docker run -d -p 6333:6333 qdrant/qdrant:latest
+      #  timeout-minutes: 1
+      # ──────────────────────────────────────────────────────
 
       - name: Set up Node
         uses: actions/setup-node@v4
@@ -43,9 +43,15 @@ jobs:
         run: |
           git config --global user.email "bot@intel.run"
           git config --global user.name  "Intel Bot"
+
+          REPORT_BRANCH=reports
+          git checkout -B $REPORT_BRANCH
           git add reports/*.md || true
+
           if ! git diff --cached --quiet; then
-            git commit -m "chore: nightly intel (${{ github.run_id }})"
-            git push
+            git commit -m "intel: nightly run ${{ github.run_id }}"
+            git push -f origin $REPORT_BRANCH
+          else
+            echo "No report changes to commit."
           fi
 

@@ -9,3 +9,4 @@ runs/
 .env
 reports/*-diff.md
 !reports/*-latest.md
+reports/

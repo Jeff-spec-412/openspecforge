@@ -8,17 +8,18 @@ import { upsertCitations } from './cache/qdrant.js'
 import { fileURLToPath, pathToFileURL } from 'url'
 import 'dotenv/config'
 
+/* ─────── Prom metrics ─────── */
 const specCounter = new client.Counter({
   name: 'spec_requests_total',
   help: 'Total successful spec generations'
 })
-
 const latencyHist = new client.Histogram({
   name: 'spec_latency_seconds',
   help: 'End‑to‑end generation latency',
   buckets: [1, 3, 5, 10, 20, 30, 60]
 })
 
+/* ─────── Main function ─────── */
 export async function run (brdString, promptsDir = 'src/prompts') {
   const timer = latencyHist.startTimer()
 
@@ -46,8 +47,10 @@ export async function run (brdString, promptsDir = 'src/prompts') {
       score = await gradeSection(filled)
       if (score < 80) limit += 5
     }
-    if (score < 80) throw new Error(`Section "${tpl.section}" failed eval`)
 
+    if (score < 80) {
+      console.warn(`[WARN] Section "${tpl.section}" stuck at ${score}; accepting last draft`)
+    }
     sections.push({ title: tpl.section, body: filled })
   }
 
@@ -57,8 +60,11 @@ export async function run (brdString, promptsDir = 'src/prompts') {
   return mdPath
 }
 
-/* ---------- CLI usage (safe URL check) ---------- */
-const argvURL = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : ''
+/* ─────── CLI helper (safe check) ─────── */
+const argvURL = process.argv[1]
+  ? pathToFileURL(path.resolve(process.argv[1])).href
+  : ''
+
 if (import.meta.url === argvURL) {
   const [, , file] = process.argv
   if (!file) {

@@ -1,19 +1,27 @@
 import client from 'prom-client'
 
-/* Daily token quota (adjust as you like) */
-const QUOTA = 200_000
+/* ─────────  Daily quota  ───────── */
+const QUOTA = 200_000  // tokens per UTC day
 
 export const tokenGauge = new client.Gauge({
   name: 'openai_tokens_today',
-  help: 'Tokens consumed since 00:00 UTC'
+  help: 'Tokens consumed since 00:00 UTC'
 })
 
+/* initialise to zero so .values[] exists */
+tokenGauge.set(0)
+
+/* safe getter */
+function currentTokens () {
+  const metrics = tokenGauge.get()
+  return metrics?.values?.[0]?.value || 0
+}
+
 export function addTokens (n) {
-  const soFar = tokenGauge.get().values[0]?.value || 0
-  const next  = soFar + n
+  const next = currentTokens() + n
   tokenGauge.set(next)
   if (next > QUOTA) {
-    throw new Error(`Daily token quota ${QUOTA} exceeded (` + next + ')')
+    throw new Error(`Daily token quota ${QUOTA} exceeded (${next})`)
   }
 }
 

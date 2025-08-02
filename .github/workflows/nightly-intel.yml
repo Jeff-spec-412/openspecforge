@@ -2,23 +2,31 @@ name: Nightly Intel
 
 on:
   schedule:
-    - cron: '0 18 * * *'          # 18:00 UTC ≈ 02:00 SGT
-  workflow_dispatch:              # manual trigger
+    - cron: '0 18 * * *'        # 18:00 UTC  ≈ 02:00 SGT
+  workflow_dispatch:
 
 jobs:
   run-intel:
     runs-on: ubuntu-latest
 
-    # 🔑  Make secrets available to every step
+    # ✅ allow pushes & read secrets
+    permissions:
+      contents: write
+
     env:
-      OPENAI_API_KEY:  ${{ secrets.OPENAI_API_KEY }}    # <— new
-      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}  # optional
+      OPENAI_API_KEY:      ${{ secrets.OPENAI_API_KEY }}
+      NOTIFY_WEBHOOK_URL:  ${{ secrets.NOTIFY_WEBHOOK_URL }}   # Slack or Lark
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          persist-credentials: true                     # to push reports
+          persist-credentials: true
+
+      # OPTIONAL – uncomment next 4 lines if you prefer the cache live in CI
+      #- name: Start Qdrant
+      #  run: docker run -d -p 6333:6333 qdrant/qdrant:latest
+      #  timeout-minutes: 1
 
       - name: Set up Node
         uses: actions/setup-node@v4

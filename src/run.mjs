@@ -5,7 +5,7 @@ import { gradeSection } from './eval/index.mjs'
 import { assemble } from './assemble/index.mjs'
 import client from 'prom-client'
 import { upsertCitations } from './cache/qdrant.js'
-import { fileURLToPath } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
 import 'dotenv/config'
 
 const specCounter = new client.Counter({
@@ -22,7 +22,6 @@ const latencyHist = new client.Histogram({
 export async function run (brdString, promptsDir = 'src/prompts') {
   const timer = latencyHist.startTimer()
 
-  /* ---------- load prompt templates ---------- */
   const templates = readdirSync(promptsDir)
     .filter(f => f.endsWith('.json'))
     .map(f => JSON.parse(readFileSync(path.join(promptsDir, f), 'utf8')))
@@ -37,11 +36,7 @@ export async function run (brdString, promptsDir = 'src/prompts') {
     let filled = ''
 
     while (score < 80 && limit <= 15) {
-      const citations = await retrieve(
-        brdString.split('\n')[0],   // naive keyword seed
-        limit
-      )
-      /* persist fresh citations (background) */
+      const citations = await retrieve(brdString.split('\n')[0], limit)
       upsertCitations(citations).catch(() => {})
 
       filled = tpl.template
@@ -57,28 +52,28 @@ export async function run (brdString, promptsDir = 'src/prompts') {
   }
 
   const { mdPath } = assemble(sections, outDir)
-  timer()                    // stop latency timer
+  timer()
   specCounter.inc()
   return mdPath
 }
 
-/* ---------- CLI usage ---------- */
-if (import.meta.url === fileURLToPath(process.argv[1])) {
-  const [, , fileOrDash] = process.argv
-  if (!fileOrDash) {
+/* ---------- CLI usage (safe URL check) ---------- */
+const argvURL = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href : ''
+if (import.meta.url === argvURL) {
+  const [, , file] = process.argv
+  if (!file) {
     console.error('usage: node src/run.mjs <brd.md | ->')
     process.exit(1)
   }
-  if (fileOrDash === '-') {
-    // read STDIN
+  if (file === '-') {
     let data = ''
-    process.stdin.on('data', chunk => (data += chunk))
+    process.stdin.on('data', c => (data += c))
     process.stdin.on('end', async () => {
       const p = await run(data)
       console.log('spec at', p)
     })
   } else {
-    const brd = readFileSync(fileOrDash, 'utf8')
+    const brd = readFileSync(file, 'utf8')
     run(brd).then(p => console.log('spec at', p))
   }
 }

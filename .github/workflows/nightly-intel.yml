@@ -2,27 +2,35 @@ name: Nightly Intel
 
 on:
   schedule:
-    - cron: '0 18 * * *'    # 18:00 UTC ≈ 02:00 SGT; adjust as you want
-  workflow_dispatch:        # lets you trigger manually
+    - cron: '0 18 * * *'          # 18:00 UTC ≈ 02:00 SGT
+  workflow_dispatch:              # manual trigger
 
 jobs:
   run-intel:
     runs-on: ubuntu-latest
+
+    # 🔑  Make secrets available to every step
+    env:
+      OPENAI_API_KEY:  ${{ secrets.OPENAI_API_KEY }}    # <— new
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}  # optional
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          persist-credentials: true   # needed to push reports
+          persist-credentials: true                     # to push reports
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+
       - name: Install deps
         run: npm ci
+
       - name: Run nightly script
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}   # optional
         run: node scripts/nightly.js
+
       - name: Commit reports
         run: |
           git config --global user.email "bot@intel.run"

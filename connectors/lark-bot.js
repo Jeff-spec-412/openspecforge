@@ -1,21 +1,20 @@
-import fs from 'fs';
-import { Client } from '@larksuiteoapi/node-sdk';
-import { run }   from '../src/run.mjs';    // hybrid pipeline
+import fs   from 'fs';
+import pkg  from '@larksuiteoapi/node-sdk';
+const { Client } = pkg;               // no LogLevel needed
+import { run } from '../src/run.mjs';
+import 'dotenv/config';
 
-/* ─────── Lark credentials ────── */
 const appId     = process.env.LARK_APP_ID;
 const appSecret = process.env.LARK_APP_SECRET;
 const port      = process.env.PORT || 3005;
 
-/* ─────── Lark client ────── */
-const cli = new Client({ appId, appSecret, appType: 'self' });
+const cli = new Client({ appId, appSecret, logLevel: LogLevel.INFO });
 
-/* ─────── Slash‑command handler ────── */
-cli.im.message.setHandler(async (data) => {
+/* ---------- event handler ---------- */
+cli.event.on('im.message.receive_v1', async (data) => {
   const { text = '', files = [] } = data.event.message;
   const promptText = text.replace('/spec', '').trim();
 
-  /* 1 ‑ get BRD text */
   let brd = promptText;
   if (!brd && files.length) {
     const fileKey = files[0].file_key;
@@ -24,16 +23,14 @@ cli.im.message.setHandler(async (data) => {
   }
   if (!brd) {
     await cli.im.message.replyText(data.event.message_id,
-      '❌ Please attach a Markdown BRD or type text after /spec.');
+      '❌ Please attach a Markdown BRD or type after /spec.');
     return;
   }
 
-  /* 2 ‑ run pipeline */
   await cli.im.message.replyText(data.event.message_id, '⏳ Generating spec…');
   try {
-    const mdPath = await run(brd);               // returns path e.g. runs/1234/spec.md
+    const mdPath = await run(brd);
     const specMd = fs.readFileSync(mdPath, 'utf8');
-
     await cli.im.message.replyText(
       data.event.message_id,
       '✅ Done!\n\n```markdown\n' + specMd.slice(0, 3500) + '```'
@@ -46,7 +43,7 @@ cli.im.message.setHandler(async (data) => {
   }
 });
 
-/* ─────── start server ────── */
+/* ---------- start built‑in Express ---------- */
 cli.start(port);
 console.log('Lark bot listening on :' + port);
 

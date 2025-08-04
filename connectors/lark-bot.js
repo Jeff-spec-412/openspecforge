@@ -12,11 +12,12 @@ const port      = process.env.PORT || 3005;
 /* ---------- client ---------- */
 const cli = new Client({ appId, appSecret });
 
-/* ---------- event handler ---------- */
-cli.on('im.message.receive_v1', async (ctx) => {
+/* ---------- register event handler ---------- */
+cli.eventDispatcher.on('im.message.receive_v1', async (ctx) => {
   const { text = '', files = [] } = ctx.event.message;
   const promptText = text.replace('/spec', '').trim();
 
+  /* 1 › get BRD text */
   let brd = promptText;
   if (!brd && files.length) {
     const fileKey = files[0].file_key;
@@ -29,6 +30,7 @@ cli.on('im.message.receive_v1', async (ctx) => {
     return;
   }
 
+  /* 2 › run pipeline */
   await cli.im.message.replyText(ctx.event.message_id, '⏳ Generating spec…');
   try {
     const mdPath = await run(brd);
@@ -45,7 +47,7 @@ cli.on('im.message.receive_v1', async (ctx) => {
   }
 });
 
-/* ---------- start server ---------- */
+/* ---------- start built‑in Express ---------- */
 cli.start(port);
 console.log('Lark bot listening on :' + port);
 

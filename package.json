@@ -8,7 +8,9 @@
   "dependencies": {
     "@larksuiteoapi/node-sdk": "^1.54.0",
     "@qdrant/js-client-rest": "^1.15.0",
+    "body-parser": "^2.2.0",
     "dotenv": "^17.2.1",
+    "express": "^5.1.0",
     "marked": "^15.0.12",
     "openai": "^5.0.0-beta.0",
     "p-limit": "^6.2.0",

@@ -12,8 +12,16 @@ const port      = process.env.PORT || 3005;
 /* ---------- client ---------- */
 const cli = new Client({ appId, appSecret });
 
-/* ---------- event handler ---------- */
-cli.on('im.message.receive_v1', async (ctx) => {
+/* ---------- universal event-bind helper ---------- */
+function bindEvent(eventName, fn) {
+  if (cli?.event?.on)                 return cli.event.on(eventName, fn);         // older API
+  if (cli?.eventDispatcher?.on)       return cli.eventDispatcher.on(eventName, fn); // mid API
+  if (cli?.on)                        return cli.on(eventName, fn);                // latest API
+  throw new Error('⚠️  No event API found on Lark SDK');
+}
+
+/* ---------- handler ---------- */
+async function handleMessage(ctx) {
   const { text = '', files = [] } = ctx.event.message;
   const promptText = text.replace('/spec', '').trim();
 
@@ -43,9 +51,10 @@ cli.on('im.message.receive_v1', async (ctx) => {
       '❌ Error: ' + e.message.slice(0, 1000)
     );
   }
-});
+}
 
-/* ---------- start built-in Express ---------- */
+/* ---------- bind & serve ---------- */
+bindEvent('im.message.receive_v1', handleMessage);
 cli.start(port);
 console.log('Lark bot listening on :' + port);
 
